@@ -14,14 +14,14 @@ import os
 """
 
 learning_rate = 0.003 # 0.003
-meta_step_size = 0.2  # 0.25
+meta_step_size = 0.25  # 0.25
 
-inner_batch_size = 48 #25
-eval_batch_size = 48 #25
+inner_batch_size = 25 #25
+eval_batch_size = 25 #25
 
-meta_iters = 1000
-eval_iters = 10
-inner_iters = 8
+meta_iters = 8000
+eval_iters = 5
+inner_iters = 4
 
 eval_interval = 1
 train_shots = 20
@@ -86,7 +86,7 @@ class Dataset:
         B = "E:\\workspace\\project_\\bad_file\\"
         S = "E:\\workspace\\project_\\file_smoke"
         C = "E:\\workspace\\segmentation\\unt01_OK\\cat"
-        def d (D=D,images=self.images,labels=self.labels,dir_counts = "0"):
+        def d (D=D,images=self.images,labels=self.labels,dir_counts = "0",vou=0):
             vou=0
             for i in os.listdir(D):
                 
@@ -116,7 +116,12 @@ class Dataset:
             d(S,images=self.images,labels=self.labels,dir_counts="3")
             d(C,images=self.images,labels=self.labels,dir_counts="4")
         else:
-            d(F,images=self.images,labels=self.labels,dir_counts="1")
+            d(D,vou=40)
+            d(E,images=self.images,labels=self.labels,dir_counts="1")
+            d(B,images=self.images,labels=self.labels,dir_counts="2",vou=40)
+            d(S,images=self.images,labels=self.labels,dir_counts="3",vou=40)
+            d(C,images=self.images,labels=self.labels,dir_counts="4",vou=40)
+            #pass
         #print("data",self.data)
         #print(self.labels)
         from sklearn.model_selection import train_test_split
@@ -316,19 +321,26 @@ import load_dataset as ld
 
 D = "E:\\data\\bottle\\train\\good\\"
 E = "E:\\data\\bottle\\test\\broken_large\\"
+B = "E:\\workspace\\project_\\bad_file\\"
+S = "E:\\workspace\\project_\\file_smoke"
+C = "E:\\workspace\\segmentation\\unt01_OK\\cat"
 test_ldx=[]
 test_ldy=[]
 ld.d(D,test_ldx,test_ldy)
-ld.d(D,test_ldx,test_ldy,1)
+ld.d(E,test_ldx,test_ldy,1)
+ld.d(B,test_ldx,test_ldy,2)
+ld.d(S,test_ldx,test_ldy,3)
+ld.d(C,test_ldx,test_ldy,4)
 test_ldx=np.array(test_ldx)
 test_ldy=np.array(test_ldy)
+
 from sklearn.model_selection import train_test_split
-test_ldx,X_test_img,test_ldy,y_test_label =  train_test_split(test_ldx, test_ldy,test_size=0.1,random_state=42 )
+test_ldx,X_test_img,test_ldy,y_test_label =  train_test_split(test_ldx, test_ldy,test_size=0.4,random_state=22 )
 print("len(test_ldx) : ", len(test_ldx))
 # test_ldx=np.array(test_ldx)
 print("test_images",test_ldx.shape)
 try:
-    test_predsxx = model.predict(test_ldx)
+    test_predsxx = model.predict(test_ldx[test_ldy==1])
     # test_predsxx= tf.argmax(test_predsxx).numpy()
     # print("test_predsxx: ",test_predsxx)
     def plot_image(image,labels,prediction,idx,num=10):  
