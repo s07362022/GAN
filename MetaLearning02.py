@@ -1,11 +1,10 @@
-from re import I
 import matplotlib.pyplot as plt
 import numpy as np
 import random
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
-import tensorflow_datasets as tfds
+#import tensorflow_datasets as tfds
 import cv2
 import os 
 
@@ -14,20 +13,20 @@ import os
 ## Define the Hyperparameters
 """
 
-learning_rate = 0.002 # 0.003
-meta_step_size = 0.25  # 0.25
+learning_rate = 0.003 # 0.003
+meta_step_size = 0.2  # 0.25
 
-inner_batch_size = 5 #25
-eval_batch_size = 5 #25
+inner_batch_size = 48 #25
+eval_batch_size = 48 #25
 
 meta_iters = 1000
-eval_iters = 5
-inner_iters = 4
+eval_iters = 10
+inner_iters = 8
 
 eval_interval = 1
-train_shots = 10
-shots = 10 #5  every shots support how many data to training and repersent lear vector
-classes = 2
+train_shots = 20
+shots = 20 #5  every shots support how many data to training and repersent lear vector
+classes = 5
 
 """
 ## Prepare the data
@@ -51,46 +50,51 @@ class Dataset:
         # Download the tfrecord files containing the omniglot data and convert to a
         # dataset.
         split = "train" if training else "test"
-        '''
-        ds = tfds.load("omniglot", split=split, as_supervised=True, shuffle_files=False)
-        
-        # Iterate over the dataset to get each individual image and its class,
-        # and put that data into a dictionary.
-        self.data = {}
+        IMAGE_SIZE = 64
+        def resize_image(image, height = IMAGE_SIZE, width = IMAGE_SIZE):
+            top, bottom, left, right = (0, 0, 0, 0)
+            
+            #get size
+            h, w , _= image.shape
+            
+            #adj(w,h)
+            longest_edge = max(h, w)    
+            
+            #size = n*n 
+            if h < longest_edge:
+                dh = longest_edge - h
+                top = dh // 2
+                bottom = dh - top
+            elif w < longest_edge:
+                dw = longest_edge - w
+                left = dw // 2
+                right = dw - left
+            else:
+                pass 
 
-        def extraction(image, label):
-            # This function will shrink the Omniglot images to the desired size,
-            # scale pixel values and convert the RGB image to grayscale
-            image = tf.image.convert_image_dtype(image, tf.float32)
-            image = tf.image.rgb_to_grayscale(image)
-            image = tf.image.resize(image, [28, 28])
-            return image, label
-
-        for image, label in ds.map(extraction):
-            image = image.numpy()
-            label = str(label.numpy())
-            if label not in self.data:
-                self.data[label] = []
-            self.data[label].append(image)
-        self.labels = list(self.data.keys())
-        '''
+            BLACK = [0, 0, 0]   
+            constant = cv2.copyMakeBorder(image, top , bottom, left, right, cv2.BORDER_CONSTANT, value = BLACK)
+            return cv2.resize(constant, (height, width))
         self.data = {}
         self.images = []
         self.labels = []
         
-        IMAGE_SIZE = 64
-        D = "D:\\harden\\anoGan2\\AnoGAN-MvTec-grid--main\\data01\\bottle\\train\\good2\\"
-        E = "D:\\harden\\anoGan2\\AnoGAN-MvTec-grid--main\\data01\\bottle\\test\\all_bad\\"
-        F = "D:\\harden\\anoGan2\\AnoGAN-MvTec-grid--main\\data01\\bottle\\test\\contamination\\"
+        
+        D = "E:\\data\\bottle\\train\\good\\"
+        E = "E:\\data\\bottle\\test\\broken_large\\"
+        F = "E:\\data\\bottle\\test\\broken_large\\"
+        B = "E:\\workspace\\project_\\bad_file\\"
+        S = "E:\\workspace\\project_\\file_smoke"
+        C = "E:\\workspace\\segmentation\\unt01_OK\\cat"
         def d (D=D,images=self.images,labels=self.labels,dir_counts = "0"):
             vou=0
             for i in os.listdir(D):
                 
                 try:
-                    img1 = cv2.imread(D+i,0)
-                    img1 = cv2.resize(img1,(IMAGE_SIZE,IMAGE_SIZE))/255.0
-                    img1=np.expand_dims(img1,axis=-1)
-                    #img1 = resize_image(img1, IMAGE_SIZE, IMAGE_SIZE)
+                    img1 = cv2.imread(D+i)
+                    #img1 = cv2.resize(img1,(IMAGE_SIZE,IMAGE_SIZE))/255.0
+                    #img1=np.expand_dims(img1,axis=-1)
+                    img1 = resize_image(img1, IMAGE_SIZE, IMAGE_SIZE) /255.0
                     images.append(img1)
                     labels.append(dir_counts)
                     label = dir_counts
@@ -101,18 +105,22 @@ class Dataset:
                 except:
                     print("error")
                 vou +=1
-                if vou >=500:
+                if vou >=80:
                     break
             print("A already read")
             return(images,labels)
         if training ==True:
             d(D)
             d(E,images=self.images,labels=self.labels,dir_counts="1")
+            d(B,images=self.images,labels=self.labels,dir_counts="2")
+            d(S,images=self.images,labels=self.labels,dir_counts="3")
+            d(C,images=self.images,labels=self.labels,dir_counts="4")
         else:
             d(F,images=self.images,labels=self.labels,dir_counts="1")
-        print("data",self.data)
-        print(self.labels)
-
+        #print("data",self.data)
+        #print(self.labels)
+        from sklearn.model_selection import train_test_split
+        self.images,X_test,self.labels,y_test =  train_test_split(self.images, self.labels,test_size=0.4,random_state=42 )
 
 
     def get_mini_dataset(
@@ -303,6 +311,49 @@ for images, labels in train_set:
     optimizer.apply_gradients(zip(grads, model.trainable_weights))
 test_preds = model.predict(test_images)
 
+##########################################改
+import load_dataset as ld 
+
+D = "E:\\data\\bottle\\train\\good\\"
+E = "E:\\data\\bottle\\test\\broken_large\\"
+test_ldx=[]
+test_ldy=[]
+ld.d(D,test_ldx,test_ldy)
+ld.d(D,test_ldx,test_ldy,1)
+test_ldx=np.array(test_ldx)
+test_ldy=np.array(test_ldy)
+from sklearn.model_selection import train_test_split
+test_ldx,X_test_img,test_ldy,y_test_label =  train_test_split(test_ldx, test_ldy,test_size=0.1,random_state=42 )
+print("len(test_ldx) : ", len(test_ldx))
+# test_ldx=np.array(test_ldx)
+print("test_images",test_ldx.shape)
+try:
+    test_predsxx = model.predict(test_ldx)
+    # test_predsxx= tf.argmax(test_predsxx).numpy()
+    # print("test_predsxx: ",test_predsxx)
+    def plot_image(image,labels,prediction,idx,num=10):  
+        fig = plt.gcf() 
+        fig.set_size_inches(12, 14) 
+        if num>25: 
+            num=25 
+        for i in range(0, num): 
+            ax = plt.subplot(5,5, 1+i) 
+            ax.imshow(image[idx], cmap='binary') 
+            title = "label=" +str(labels[idx]) 
+            if len(prediction)>0: 
+                title+=",perdict="+str(prediction[idx]) 
+            ax.set_title(title,fontsize=10) 
+            ax.set_xticks([]);ax.set_yticks([]) 
+            idx+=1 
+        plt.show() 
+    print(test_predsxx.argmax(axis=1))
+    plot_image(test_ldx,test_ldy,test_predsxx.argmax(axis=1),idx=0)
+except:
+    pass
+
+
+
+################################################
 test_preds = tf.argmax(test_preds).numpy()
 
 _, axarr = plt.subplots(nrows=1, ncols=5, figsize=(20, 20))
@@ -324,3 +375,61 @@ for i, ax in zip(range(len(test_labels)), axarr):
     ax.xaxis.set_visible(False)
     ax.yaxis.set_visible(False)
 plt.show()
+
+
+from sklearn.metrics import accuracy_score, confusion_matrix
+import seaborn as sns
+test_predsxx = model.predict(test_ldx)
+test_predsxx=test_predsxx.argmax(axis=1)
+try:
+    print(f"accuracy_score: {accuracy_score(test_ldy, test_predsxx):.3f}")
+
+    confusion = confusion_matrix(test_ldy, test_predsxx)
+
+    plt.figure(figsize=(5, 5))
+    sns.heatmap(confusion_matrix(test_ldy, test_predsxx), 
+                cmap="Blues", annot=True, fmt="d", cbar=False,
+                xticklabels=[0, 1], yticklabels=[0, 1])
+    plt.title("Confusion Matrix")
+    plt.show()
+except:
+    pass
+
+def plot_confusion_matrix(cm, classes,
+                          normalize=False,
+                          title='Confusion matrix',
+                          cmap=plt.cm.Blues):
+    
+    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    plt.title(title)
+    plt.colorbar()
+    tick_marks = np.arange(len(classes))
+    plt.xticks(tick_marks, classes, rotation=45)
+    plt.yticks(tick_marks, classes)
+
+    if normalize:
+        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+        print("Normalized confusion matrix")
+    else:
+        print('Confusion matrix, without normalization')
+
+    print(cm)
+
+    thresh = cm.max() / 2.
+    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+        plt.text(j, i, cm[i, j],
+                 horizontalalignment="center",
+                 color="white" if cm[i, j] > thresh else "black")
+
+    plt.tight_layout()
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+    plt.show()
+try:
+    import itertools
+    import sklearn.metrics as metrics
+    cnf_matrix = metrics.confusion_matrix(test_ldy, test_predsxx)#y_test_label
+    target_names = ['OK', 'NG']
+    plot_confusion_matrix(test_predsxx)
+except:
+    pass
