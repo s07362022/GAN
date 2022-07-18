@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-from __future__ import print_function
 import numpy as np
  
 import random
@@ -95,6 +93,30 @@ E = "E:\\workspace\\project_\\vv\\"
 images1 = []
 labels1 = []
 dir_counts = 0
+def resize_image(image, height = IMAGE_SIZE, width = IMAGE_SIZE):
+    top, bottom, left, right = (0, 0, 0, 0)
+    
+    #get size
+    h, w, _ = image.shape
+    
+    #adj(w,h)
+    longest_edge = max(h, w)    
+    
+    #size = n*n 
+    if h < longest_edge:
+        dh = longest_edge - h
+        top = dh // 2
+        bottom = dh - top
+    elif w < longest_edge:
+        dw = longest_edge - w
+        left = dw // 2
+        right = dw - left
+    else:
+        pass 
+
+    BLACK = [0, 0, 0]   
+    constant = cv2.copyMakeBorder(image, top , bottom, left, right, cv2.BORDER_CONSTANT, value = BLACK)
+    return cv2.resize(constant, (height, width))
 def d (D=D,images=images1,labels=labels1):
     vou=0
     for i in os.listdir(D):
@@ -103,8 +125,8 @@ def d (D=D,images=images1,labels=labels1):
             #print(D+i)
             img1 = cv2.imread(D+i)
             #print(D+i)
-            img1 = cv2.resize(img1,(IMAGE_SIZE,IMAGE_SIZE))
-            #img1 = resize_image(img1, IMAGE_SIZE, IMAGE_SIZE)
+            #img1 = cv2.resize(img1,(IMAGE_SIZE,IMAGE_SIZE))
+            img1 = resize_image(img1, IMAGE_SIZE, IMAGE_SIZE)
             images.append(img1)
             #print(0)
             labels.append(dir_counts)
@@ -122,8 +144,8 @@ def e (E=E,images=images1,labels=labels1):
     for i in os.listdir(E):
         try:
             img2 = cv2.imread(E+i)
-            img2 = cv2.resize(img2,(IMAGE_SIZE,IMAGE_SIZE))
-            #img2 = resize_image(img2, IMAGE_SIZE, IMAGE_SIZE)
+            #img2 = cv2.resize(img2,(IMAGE_SIZE,IMAGE_SIZE))
+            img2 = resize_image(img2, IMAGE_SIZE, IMAGE_SIZE)
             images.append(img2)
             labels.append(dir_counts+1)
         except:
